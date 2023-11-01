@@ -8,9 +8,11 @@ import pandas as pd
 # Parameters
 job_numbers = [30, 60, 90, 120, 150, 180]
 machine_numbers = [2, 4, 6, 8]
-scheduling_weeks = [1, 2, 3, 4, 6] # up to
+scheduling_weeks = [3, 4, 6] # up to
+# scheduling_weeks = [1, 2, 3, 4, 6] # up to
 personnel_capacity = [1, 2, 3, 4, 5, 6, 7] # up to
-TW_density = [0, 1] # Percentage of jobs with time windows
+# TW_density = [0, 1] # Percentage of jobs with time windows
+TW_density = [0.5] # Percentage of jobs with time windows
 machine_eligibility_constraint = [0, 1] # percent of jobs that can only be processed on a given machine
 weekly_personnel_availability = 2250  # Weekly personnel availability value
 
@@ -111,6 +113,12 @@ def generateTimeWindows(n_jobs, n_weeks, tw_density, tw_length, week_minutes):
             delivery_times[val, j] = day_minutes*5
         delivery_times[val, delivery_week] = (delivery_day+1) * day_minutes # plus one for end of day
         delivery_periods[val] = delivery_week+1 # plus one to account for index
+    
+    # Set all other jobs to have a delivery time of 5 days
+    for i in range(n_jobs):
+        if i not in tw_indexes:
+            for j in range(n_weeks):
+                delivery_times[i, j] = day_minutes*5
 
     # return tw_starts, tw_lengths, release_times, delivery_times, tw_indexes
 
