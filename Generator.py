@@ -5,14 +5,16 @@ import numpy as np
 import pandas as pd
 # Also requires xlsxwriter to be installed
 
+np.random.seed(0)
+
 # Parameters
 job_numbers = [30, 60, 90, 120, 150, 180]
 machine_numbers = [2, 4, 6, 8]
-scheduling_weeks = [3, 4, 6] # up to
-# scheduling_weeks = [1, 2, 3, 4, 6] # up to
+# scheduling_weeks = [3, 4, 6] # up to
+scheduling_weeks = [1, 2, 3, 4, 6] # up to
 personnel_capacity = [1, 2, 3, 4, 5, 6, 7] # up to
-# TW_density = [0, 1] # Percentage of jobs with time windows
-TW_density = [0.5] # Percentage of jobs with time windows
+TW_density = [0, 1] # Percentage of jobs with time windows
+# TW_density = [0.5] # Percentage of jobs with time windows
 machine_eligibility_constraint = [0, 1] # percent of jobs that can only be processed on a given machine
 weekly_personnel_availability = 2250  # Weekly personnel availability value
 
@@ -160,7 +162,7 @@ def generatePersonnelTimes(n_staff, n_weeks, week_minutes):
 
     return people_times, personnel_assignments
 
-def writeExcel(index, n_machines, n_weeks, job_proc_times, seq_dep_setup_times, release_times, delivery_times, release_periods, delivery_periods, people_times, machine_eligibilities, initial_setup_times, tw_density, weekly_personnel_availability, mean_value, upper_bound, lower_bound, machine_eligibility, personnel_assignments):
+def writeExcelOld(index, n_machines, n_weeks, job_proc_times, seq_dep_setup_times, release_times, delivery_times, release_periods, delivery_periods, people_times, machine_eligibilities, initial_setup_times, tw_density, weekly_personnel_availability, mean_value, upper_bound, lower_bound, machine_eligibility, personnel_assignments):
 
     # Job processing times
     df_job_proc_times = pd.DataFrame(job_proc_times.T)
@@ -302,6 +304,206 @@ def writeExcel(index, n_machines, n_weeks, job_proc_times, seq_dep_setup_times, 
         )
 
     # writer.save()
+    writer.close()
+
+def writeExcel(index, n_machines, n_weeks, job_proc_times, seq_dep_setup_times, release_times, delivery_times, release_periods, delivery_periods, people_times, machine_eligibilities, initial_setup_times, tw_density, weekly_personnel_availability, mean_value, upper_bound, lower_bound, machine_eligibility, personnel_assignments):
+
+    # Job processing times
+    df_job_proc_times = pd.DataFrame(job_proc_times.T)
+    df_job_proc_times.columns = [f'Machine {i}' for i in range(n_machines)]
+    df_job_proc_times.index.name = "Job"
+
+    # Sequence Dependant Setup Times
+    dfs_seq_dep_setup_times = {}
+    for i in range(n_machines):
+        dfs_seq_dep_setup_times[i] = pd.DataFrame(seq_dep_setup_times[i,:,:])
+
+    # Time Windows
+    df_periods = pd.DataFrame()
+    df_periods['Release Periods'] = release_periods
+    df_periods['Delivery Periods'] = delivery_periods
+    df_periods.index.name = 'Job'
+
+    df_release_times = pd.DataFrame(release_times)
+    df_release_times.columns = [f'Week {i+1}' for i in range(n_weeks)]
+    df_release_times.index.name = 'Job'
+
+    df_delivery_times = pd.DataFrame(delivery_times)
+    df_delivery_times.columns = [f'Week {i+1}' for i in range(n_weeks)]
+    df_delivery_times.index.name = 'Job'
+
+    # Personnel Times
+    df_people_times = pd.DataFrame(people_times)
+    df_people_times.columns = [f'Week {i+1}' for i in range(n_weeks)]
+    df_people_times.index.name = 'Personnel'
+
+    # Initial Setup Times
+    df_initial_setup_times = pd.DataFrame(initial_setup_times.T)
+    df_initial_setup_times.columns = [f'Machine {i}' for i in range(n_machines)]
+    df_initial_setup_times.index.name = "Job"
+
+
+    # Check for data dir
+    if not os.path.exists('data'):
+        os.makedirs('data')
+
+    # Write to excel
+    writer = pd.ExcelWriter(f'./data/Scheduling_Instance_{index}.xlsx', engine='xlsxwriter')
+    # workbook = writer.book
+
+    # Write instance info sheet
+    worksheet = writer.book.add_worksheet('Instance Info')
+    worksheet.write(0, 0, 'Instance Info')
+    worksheet.write(1, 0, 'Instance Number')
+    worksheet.write(1, 1, index)
+    worksheet.write(2, 0, 'Number of Jobs')
+    worksheet.write(2, 1, n_jobs)
+    worksheet.write(3, 0, 'Number of Machines')
+    worksheet.write(3, 1, n_machines)
+    worksheet.write(4, 0, 'Number of Weeks')
+    worksheet.write(4, 1, n_weeks)
+    worksheet.write(5, 0, 'Personnel Available')
+    worksheet.write(5, 1, n_staff)
+    worksheet.write(6, 0, 'Max Time Window Length (Days)')
+    worksheet.write(6, 1, n_weeks*5)
+    worksheet.write(7, 0, 'Time Window Density')
+    worksheet.write(7, 1, tw_density)
+    worksheet.write(8, 0, 'Weekly Personnel Availability')
+    worksheet.write(8, 1, weekly_personnel_availability)
+    worksheet.write(9, 0, 'Mean Time Value')
+    worksheet.write(9, 1, mean_value)
+    worksheet.write(10, 0, 'Upper Bound')
+    worksheet.write(10, 1, upper_bound)
+    worksheet.write(11, 0, 'Lower Bound')
+    worksheet.write(11, 1, lower_bound)
+    worksheet.write(12, 0, 'Machine Eligibility Constraint')
+    worksheet.write(12, 1, machine_eligibility)
+
+    # Write Sets Sheet
+    worksheet = writer.book.add_worksheet('Sets')
+    worksheet.write(0, 0, 'NumberOfOrders')
+    worksheet.write(1, 0, n_jobs+1)
+
+    worksheet.write(3, 0, 'EndOrder')
+    worksheet.write(4, 0, n_jobs+1)
+
+    worksheet.write(6, 0, 'NumberOfProductionLines')
+    worksheet.write(7, 0, n_machines)
+
+    worksheet.write(9, 0, 'NumberOfCrewsWithReassignment')
+    worksheet.write(10, 0, n_staff*2)
+
+    worksheet.write(12, 0, 'NumberOfCrewsWithoutReassignment')
+    worksheet.write(13, 0, n_staff)
+
+    worksheet.write(15, 0, 'NumberOfWeeks')
+    worksheet.write(16, 0, n_weeks)
+
+    # Machine Eligibilities
+    worksheet.write(0, 2, 'Machine Eligibilities')
+    for i in range(n_machines):
+        worksheet.write(i+1, 2, f'Machine {i+1}')
+        # worksheet.write(i+1, 3, machine_eligibilities[i])
+    # worksheet.write(1, 3, f'data') # TODO: fix this to write the actual data
+    formatted_machine_eligibilities = [f'{{{", ".join(map(str, machine_eligibilities[i]))}}}' for i in range(len(machine_eligibilities))]
+    formatted_machine_eligibilities = str(dict(zip([n+1 for n in range(len(formatted_machine_eligibilities))],formatted_machine_eligibilities)))
+    formatted_machine_eligibilities = formatted_machine_eligibilities.replace("'",'')
+    formatted_machine_eligibilities = f"data {formatted_machine_eligibilities};"
+    worksheet.write(1, 3, formatted_machine_eligibilities)
+
+    # lists_temp = [f'{{{", ".join(map(str, lists[i]))}}}' for i in range(len(lists))]
+    # lists_temp = str(dict(zip([n+1 for n in range(len(lists_temp))],lists_temp)))
+    # lists_temp = lists_temp.replace("'",'')
+    # print(f'data {lists_temp};')
+    
+    # Personnel Assignments
+    worksheet.write(0, 5, 'Personnel Assignments')
+    for i in range(n_staff):
+        worksheet.write(i+1, 5, f'Personnel {i+1}')
+        # worksheet.write(i+1, 6, str(personnel_assignments[i]))
+    # worksheet.write(n_staff + 1, 5, 'data') # TODO: fix this to write the actual data
+    formatted_personnel_assignments = [f'{{{", ".join(map(str, personnel_assignments[i]))}}}' for i in range(len(personnel_assignments))]
+    formatted_personnel_assignments = str(dict(zip([n+1 for n in range(len(formatted_personnel_assignments))],formatted_personnel_assignments)))
+    formatted_personnel_assignments = formatted_personnel_assignments.replace("'",'')
+    formatted_personnel_assignments = f"data {formatted_personnel_assignments};"
+    worksheet.write(1, 6, formatted_personnel_assignments)
+
+    # Write OrderInfo Sheet
+    worksheet = writer.book.add_worksheet('OrderInfo')
+    # Order Processing Times
+    worksheet.write(0, 0, 'OrdersProcessingTimes')
+    worksheet.write(1, 0, 'Orders')
+    worksheet.write(1, 1, 'Machines')
+    for i in range(n_machines):
+        worksheet.write(2, i+1, i+1)
+    for i in range(n_jobs):
+        worksheet.write(i+3, 0, i+1)
+        for j in range(n_machines):
+            worksheet.write(i+3, j+1, job_proc_times[j, i])
+
+    # Order Initial Setup Times
+    worksheet.write(0, 10, 'Time_Begin')
+    worksheet.write(1, 10, 'Orders')
+    worksheet.write(1, 11, 'Machines')
+    for i in range(n_machines):
+        worksheet.write(2, i+11, i+1)
+    for i in range(n_jobs):
+        worksheet.write(i+3, 10, i+1)
+        for j in range(n_machines):
+            worksheet.write(i+3, j+11, initial_setup_times[j, i])
+
+    # Release Weeks
+    worksheet.write(0, 20, 'ReleaseWeeks')
+    worksheet.write(1, 20, 'Orders')
+    worksheet.write(1, 21, 'ReleaseWeek')
+    for i in range(n_jobs):
+        worksheet.write(i+2, 20, i+1)
+        worksheet.write(i+2, 21, release_periods[i])
+
+    # Delivery Weeks
+    worksheet.write(0, 23, 'DeliveryWeeks')
+    worksheet.write(1, 23, 'Orders')
+    worksheet.write(1, 24, 'Deadline')
+    for i in range(n_jobs):
+        worksheet.write(i+2, 23, i+1)
+        worksheet.write(i+2, 24, delivery_periods[i])
+
+    # Release Times
+    worksheet.write(0, 26, 'ReleaseTimes')
+    worksheet.write(1, 26, 'Orders')
+    worksheet.write(1, 27, 'Weeks')
+    for i in range(n_weeks):
+        worksheet.write(2, i+27, i+1)
+    for i in range(n_jobs):
+        worksheet.write(i+3, 26, i+1)
+        for j in range(n_weeks):
+            worksheet.write(i+3, j+27, release_times[i, j])
+
+    # Delivery Times
+    worksheet.write(0, 34, 'DeliveryTimes')
+    worksheet.write(1, 34, 'Orders')
+    worksheet.write(1, 35, 'Weeks')
+    for i in range(n_weeks):
+        worksheet.write(2, i+35, i+1)
+    for i in range(n_jobs):
+        worksheet.write(i+3, 34, i+1)
+        for j in range(n_weeks):
+            worksheet.write(i+3, j+35, delivery_times[i, j])
+
+    # Write CleanTimes Sheet
+    worksheet = writer.book.add_worksheet('CleanTimes')
+    worksheet.write(0, 0, 'Machine')
+    worksheet.write(0, 1, 'Order')
+    for i in range(n_jobs):
+        worksheet.write(0, i+2, i+1)
+    for i in range(n_machines):
+        for j in range(n_jobs):
+            worksheet.write(i*n_jobs+j+1, 0, i+1)
+            worksheet.write(i*n_jobs+j+1, 1, j+1)
+            for j2 in range(n_jobs):
+                # if j != j2:
+                worksheet.write(i*n_jobs+j+1, j2+2, seq_dep_setup_times[i, j, j2])
+    
     writer.close()
 
 # Main
