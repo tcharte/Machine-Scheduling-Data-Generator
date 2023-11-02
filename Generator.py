@@ -137,10 +137,10 @@ def generateMachineEligibilities(n_machines, n_jobs, eligibility_constraint):
     # Assign the jobs without contraint to all machines and the jobs with contraint to a single machine
     for i in range(n_jobs):
         if i in indexes:
-            machine_eligibilities[np.random.randint(0, n_machines)].append(i)
+            machine_eligibilities[np.random.randint(0, n_machines)].append(i+1)
         else:
             for j in range(n_machines):
-                machine_eligibilities[j].append(i)
+                machine_eligibilities[j].append(i+1)
 
     return machine_eligibilities
 
