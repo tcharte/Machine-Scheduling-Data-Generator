@@ -32,7 +32,7 @@ def generateJobProcessingTimes(min_processing_time, max_processing_time, n_machi
     # set processing times to zero on non-eligible machines
     for i, machine_eligibility in enumerate(machine_eligibilities):
         for job in range(n_jobs):
-            if job not in machine_eligibility:
+            if job+1 not in machine_eligibility:
                 job_proc_times[i, job] = 0
                 # job_initial_setup_times[i, job] = 0
     
