@@ -8,10 +8,10 @@ import pandas as pd
 np.random.seed(0)
 
 # Parameters
-job_numbers = [30, 60, 90, 120, 150, 180]
-machine_numbers = [2, 4, 6, 8]
+job_numbers = [30,50,60,75,90,100,120,150]
+machine_numbers = [2,3,4,5,6,7,8,9,10]
 # scheduling_weeks = [3, 4, 6] # up to
-scheduling_weeks = [1, 2, 3, 4, 6] # up to
+scheduling_weeks = [1, 2, 3] # up to
 personnel_capacity = [1, 2, 3, 4, 5, 6, 7] # up to
 TW_density = [0, 1] # Percentage of jobs with time windows
 # TW_density = [0.5] # Percentage of jobs with time windows
@@ -417,16 +417,16 @@ def writeExcel(index, n_machines, n_weeks, job_proc_times, seq_dep_setup_times, 
     # print(f'data {lists_temp};')
     
     # Personnel Assignments
-    worksheet.write(0, 5, 'Personnel Assignments')
-    for i in range(n_staff):
-        worksheet.write(i+1, 5, f'Personnel {i+1}')
+    worksheet.write(0, 5, 'Position Of Line')
+    for i in range(n_machines):
+        worksheet.write(i+1, 5, f'Machine {i+1}')
         # worksheet.write(i+1, 6, str(personnel_assignments[i]))
     # worksheet.write(n_staff + 1, 5, 'data') # TODO: fix this to write the actual data
-    formatted_personnel_assignments = [f'{{{", ".join(map(str, personnel_assignments[i]))}}}' for i in range(len(personnel_assignments))]
-    formatted_personnel_assignments = str(dict(zip([n+1 for n in range(len(formatted_personnel_assignments))],formatted_personnel_assignments)))
-    formatted_personnel_assignments = formatted_personnel_assignments.replace("'",'')
-    formatted_personnel_assignments = f"data {formatted_personnel_assignments};"
-    worksheet.write(1, 6, formatted_personnel_assignments)
+    formatted_Position_Line = [f'{{{", ".join(map(str, personnel_assignments[i]))}}}' for i in range(len(personnel_assignments))]
+    formatted_Position_Line = str(dict(zip([n+1 for n in range(len(formatted_Position_Line))],formatted_Position_Line)))
+    formatted_Position_Line = formatted_Position_Line.replace("'",'')
+    formatted_Position_Line = f"data {formatted_Position_Line};"
+    worksheet.write(1, 6, formatted_Position_Line)
 
     # Write OrderInfo Sheet
     worksheet = writer.book.add_worksheet('OrderInfo')
@@ -515,10 +515,10 @@ valid_combinations = []
 
 # Iterate through all combinations
 for instance_number, (
-    num_jobs, num_machines, num_weeks, personnel_available, tw_percent, machine_eligibility
+    num_machines,num_jobs, num_weeks, personnel_available, tw_percent, machine_eligibility
 ) in enumerate(
         itertools.product(
-            job_numbers, machine_numbers, scheduling_weeks, personnel_capacity, TW_density, machine_eligibility_constraint
+            machine_numbers,job_numbers, scheduling_weeks, personnel_capacity, TW_density, machine_eligibility_constraint
         ), start=1):
     # Rule 1: The ratio of (number of jobs) / (number of machines * number of weeks) is not less than 15.
     if num_jobs >= 15 * num_machines * num_weeks:
